@@ -26,6 +26,7 @@ Contributors:
 #define _GNU_SOURCE
 #include <netdb.h>
 #include <sys/socket.h>
+#include <netinet/tcp.h>
 #include <unistd.h>
 #else
 #include <winsock2.h>
@@ -335,6 +336,8 @@ int net__try_connect_step2(struct mosquitto *mosq, uint16_t port, mosq_sock_t *s
 		if(net__socket_nonblock(sock)){
 			continue;
 		}
+		net__socket_nodelay(sock);
+		net__socket_quickack(sock);
 
 		rc = connect(*sock, rp->ai_addr, rp->ai_addrlen);
 #ifdef WIN32
@@ -349,6 +352,8 @@ int net__try_connect_step2(struct mosquitto *mosq, uint16_t port, mosq_sock_t *s
 			if(net__socket_nonblock(sock)){
 				continue;
 			}
+			net__socket_nodelay(sock);
+			net__socket_quickack(sock);
 			break;
 		}
 
@@ -436,6 +441,8 @@ int net__try_connect(const char *host, uint16_t port, mosq_sock_t *sock, const c
 				continue;
 			}
 		}
+		net__socket_nodelay(sock);
+		net__socket_quickack(sock);
 
 		rc = connect(*sock, rp->ai_addr, rp->ai_addrlen);
 #ifdef WIN32
@@ -1004,6 +1011,31 @@ int net__socket_nonblock(mosq_sock_t *sock)
 		return MOSQ_ERR_ERRNO;
 	}
 #endif
+	return MOSQ_ERR_SUCCESS;
+}
+
+int net__socket_nodelay(mosq_sock_t *sock)
+{
+	int opt;
+	/* Set no delay (disable Nagle algorithm) */
+	int i = 1;
+	opt = setsockopt(*sock, IPPROTO_TCP, TCP_NODELAY, (void *)&i, sizeof(i));
+	if(opt == -1){
+		// log__printf(mosq, MOSQ_LOG_ERR, "Error: Unable to set socket option TCP_NODELAY: %m");
+	}
+	return MOSQ_ERR_SUCCESS;
+}
+
+
+int net__socket_quickack(mosq_sock_t *sock)
+{
+	int opt;
+	/* Set quick ACK (disable delayed ACK) */
+	int i = 1;
+	opt = setsockopt(*sock, IPPROTO_TCP, TCP_QUICKACK, (void *)&i, sizeof(i));
+	if(opt == -1){
+		// log__printf(mosq, MOSQ_LOG_ERR, "Error: Unable to set socket option TCP_QUICKACK: %m");
+	}
 	return MOSQ_ERR_SUCCESS;
 }
 
