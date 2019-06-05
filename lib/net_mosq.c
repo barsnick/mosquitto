@@ -1003,6 +1003,9 @@ ssize_t net__read(struct mosquitto *mosq, void *buf, size_t count)
 #ifdef WITH_TLS
 	int ret;
 #endif
+#ifndef WIN32
+	ssize_t rv;
+#endif
 	assert(mosq);
 	errno = 0;
 #ifdef WITH_TLS
@@ -1018,7 +1021,9 @@ ssize_t net__read(struct mosquitto *mosq, void *buf, size_t count)
 #endif
 
 #ifndef WIN32
-	return read(mosq->sock, buf, count);
+	rv = read(mosq->sock, buf, count);
+	net__socket_quickack(&(mosq->sock));
+	return rv;
 #else
 	return recv(mosq->sock, buf, count, 0);
 #endif
