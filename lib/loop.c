@@ -156,6 +156,7 @@ int mosquitto_loop(struct mosquitto *mosq, int timeout, int max_packets)
 #ifndef WIN32
 				if(read(mosq->sockpairR, &pairbuf, 1) == 0){
 				}
+				net__socket_quickack(&(mosq->sockpairR));
 #else
 				recv(mosq->sockpairR, &pairbuf, 1, 0);
 #endif
